@@ -9,9 +9,23 @@ class TMatch extends Model
 {
     use HasFactory;
     protected $fillable = [
-            't1_id',
-            't2_id',
-            'weak',
-            'result',
+        't1_id',
+        't2_id',
+        'weak',
+        'result',
     ];
+
+    protected $appends = [
+        'hostTeam',
+        'awayTeam'
+    ];
+
+    public function getHostTeamAttribute()
+    {
+        return Team::find($this->t1_id);
+    }
+    public function getAwayTeamAttribute()
+    {
+        return Team::find($this->t2_id);
+    }
 }

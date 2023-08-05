@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\MatchHelper;
 use App\Models\League;
 use App\Models\Team;
 use App\Models\TMatch;
@@ -11,70 +12,44 @@ use PhpParser\Node\Expr\Match_;
 class LeagueController extends Controller
 {
 
-
-    public function create()
+    public function playMatchesOfWeek()
     {
-        //if (League::where('status', true)->count() > 0) return;
-        return $this->createLeagueToBeMatches();
+        $currentLeague = League::currentLeague();
+        if ($currentLeague->week >= 6) {
+            $currentLeague->status = false;
+            $currentLeague->save();
+            return;
+        }
+        $currentLeague->week =  $currentLeague->week + 1;
+        $currentLeague->save();
+        $matches = TMatch::where('weak', $currentLeague->week)->get();
+        foreach ($matches as $match) {
+            $res = MatchHelper::playMatch($match);
+            $match->result = join('-', $res);
+            $match->save();
+        }
+        if($currentLeague->week == 6){
+            $currentLeague->status = false;
+            $currentLeague->save();
+        }
     }
 
-    private function createLeagueToBeMatches()
+
+
+    private function playMatchesAllOfLeague()
     {
-        $teams = Team::inRandomOrder()->limit(4)->get();
-        $teams_id = [];
-        foreach($teams as $team){
-            array_push($teams_id,$team->id);
+        $currentLeague = League::currentLeague();
+        $currentLeague->week =  $currentLeague->week + 1;
+        $currentLeague->save();
+        $matches = TMatch::where('result', null)->get();
+        foreach ($matches as $match) {
+            $res = MatchHelper::playMatch($match);
+            $match->result = join('-', $res);
+            $match->save();
         }
-
-        $league = League::create(['teams_id'=> join('-',$teams_id)]);
-        $matches= [];
-        $pairedTeamsIndexes = $this->generatePairTeamsIndexes();
-        foreach($pairedTeamsIndexes as $index){
-            $matches[] = [
-                [$teams[$index[0][0]],$teams[$index[0][1]]],
-                [$teams[$index[1][0]],$teams[$index[1][1]]],
-            ];
-        }
-        $temp = $matches; 
-        foreach($temp as $wm){
-            $matches[]= array_reverse($wm);
-        }
-
-        foreach($matches as $key=> $val){
-            foreach($val  as $t){
-                TMatch::create([
-                't1_id'=> $t[0]->id,
-                't2_id'=>$t[1]->id,
-                'weak' => $key +1,
-                ]);
-            }    
-        }
-        return $matches;
-
+        $currentLeague->status = false;
+        $currentLeague->save();
     }
 
-    private function generatePairTeamsIndexes()
-    {
-        $matches = [];
-        foreach (range(0, 2) as $i) {
-            foreach (range(0, 2) as $j) {
-                if ($i >= $j) continue;
-                $indexes = range(0, 3);
-                $firstMatch = [
-                    $indexes[$i],
-                    $indexes[$j]
-                ];
-                unset($indexes[$i]);
-                unset($indexes[$j]);
-
-                $secondMatch = [
-                    array_pop($indexes),
-                    array_pop($indexes),
-                ];
-                $matches[] = [$firstMatch, $secondMatch];
-            }
-        }
-
-        return $matches;
-    }
+  
 }
