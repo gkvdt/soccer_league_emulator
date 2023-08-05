@@ -15,8 +15,9 @@ class CreateLeaguesTable extends Migration
     {
         Schema::create('leagues', function (Blueprint $table) {
             $table->id();
-            $table->boolean('status')->default('true');
+            $table->boolean('status')->default(true);
             $table->integer('week')->default(0);
+            $table->string('teams_id')->nullable(false);
             $table->timestamps();
         });
     }

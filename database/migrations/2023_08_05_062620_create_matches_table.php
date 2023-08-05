@@ -13,12 +13,12 @@ class CreateMatchesTable extends Migration
      */
     public function up()
     {
-        Schema::create('matches', function (Blueprint $table) {
+        Schema::create('t_matches', function (Blueprint $table) {
             $table->id();
             $table->string('t1_id')->nullable(false);
             $table->string('t2_id')->nullable(false);
             $table->integer('weak')->nullable(false);
-            $table->string('result')->nullable(false);
+            $table->string('result')->nullable(true);
             $table->timestamps();
         });
     }

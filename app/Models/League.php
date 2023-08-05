@@ -11,5 +11,6 @@ class League extends Model
     protected $fillable = [
         'status',
         'week',
+'teams_id'
     ];
 }
