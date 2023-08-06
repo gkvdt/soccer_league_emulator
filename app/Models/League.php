@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class League extends Model
 {
@@ -18,21 +19,93 @@ class League extends Model
     public static function createNewLeague()
     {
 
-        CurrentLeague::delete();
-        $currentLeagueId = self::createLeagueToBeMatches();
-        CurrentLeague::create([
-            'current_league_id'=> $currentLeagueId
-        ]);
+        CurrentLeague::truncate();
+        League::truncate();
+        TMatch::truncate();
+        $l = new League();
+        $l->createLeagueToBeMatches();
+        
+    }
+
+    public function currentWeekMatches()
+    {
+        $league = League::findOrFail(CurrentLeague::first()->id);
+
+        return TMatch::where('league_id', $league->id)
+            ->where('weak', $league->week)->get();
+    }
+
+    public function getPredictionsOfChampionship()
+    {
+        $currentLeague = League::currentLeague();
+        if($currentLeague->week <4) return false;
+        $leagueList = $this->getLeagueList();
+        $teams = [$leagueList[0]];
+        for ($i = 1; $i < 4; $i++) {
+            if ($leagueList[0]->pts <= ($leagueList[$i]->pts + ((6 - $currentLeague->week)*3)))
+                $teams[] = $leagueList[$i];
+        }
+        $totalRate = 0;
+        $temp = [];
+        foreach ($teams as $team) {
+            $temp[] =  [
+                'team' => $team,
+                'temp_rate' => $team->power * $team->pts,
+            ];
+            $totalRate += $team->power * $team->pts;
+        }
+        $result = [];
+        foreach ($temp as $row) {
+            $result[] = [
+                'team' => $row['team'],
+                'rate' => round($row['temp_rate'] / $totalRate * 100),
+            ];
+        }
+        return $result;
     }
 
 
     public static function currentLeague()
     {
-        return League::findOrFail(CurrentLeague::first()->current_league_id);
+        $currentLeague = CurrentLeague::first();
+        if (!$currentLeague) {
+            $l = new League();
+            $l->createLeagueToBeMatches();
+            $currentLeague = CurrentLeague::first();
+        }
+        return League::findOrFail($currentLeague->current_league_id);
+    }
+
+    public function getLeagueList()
+    {
+        $leagueTeams = Team::whereIn('id', explode('-', $this->teams_id))
+            ->get();
+        return $this->sortList($leagueTeams);
+    }
+
+    private function sortList($lt)
+    {
+
+        $sorted = json_decode(json_encode($lt));
+        for ($i = 0; $i < 4; $i++) {
+            for ($j = 0; $j < 4; $j++) {
+                if ($sorted[$i]->pts > $sorted[$j]->pts && $j > $i) {
+                    $temp = $sorted[$i];
+                    $sorted[$i] = $sorted[$j];
+                    $sorted[$j] = $temp;
+                } else if ($sorted[$i]->pts == $sorted[$j]->pts && $j > $i && $sorted[$i]->gd > $sorted[$j]->gd) {
+                    $temp = $sorted[$i];
+                    $sorted[$i] = $sorted[$j];
+                    $sorted[$j] = $temp;
+                }
+            }
+        }
+
+        return array_reverse($sorted);
     }
 
 
-    private function createLeagueToBeMatches()
+    public function createLeagueToBeMatches()
     {
         $teams = Team::inRandomOrder()->limit(4)->get();
         $teams_id = [];
@@ -41,6 +114,9 @@ class League extends Model
         }
 
         $league = League::create(['teams_id' => join('-', $teams_id)]);
+        CurrentLeague::create([
+            'current_league_id' => $league->id
+        ]);
         $matches = [];
         $pairedTeamsIndexes = $this->generatePairTeamsIndexes();
         foreach ($pairedTeamsIndexes as $index) {
@@ -54,12 +130,14 @@ class League extends Model
             $matches[] = array_reverse($wm);
         }
 
+
         foreach ($matches as $key => $val) {
             foreach ($val  as $t) {
                 TMatch::create([
                     't1_id' => $t[0]->id,
                     't2_id' => $t[1]->id,
                     'weak' => $key + 1,
+                    'league_id' => $league->id
                 ]);
             }
         }

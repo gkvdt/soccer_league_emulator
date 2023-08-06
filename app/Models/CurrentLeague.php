@@ -8,4 +8,5 @@ use Illuminate\Database\Eloquent\Model;
 class CurrentLeague extends Model
 {
     use HasFactory;
+    protected $fillable = ['current_league_id'];
 }

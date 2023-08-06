@@ -13,11 +13,12 @@ class TMatch extends Model
         't2_id',
         'weak',
         'result',
+        'league_id',
     ];
 
     protected $appends = [
         'hostTeam',
-        'awayTeam'
+        'awayTeam',
     ];
 
     public function getHostTeamAttribute()

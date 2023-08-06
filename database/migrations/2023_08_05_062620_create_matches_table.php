@@ -15,9 +15,10 @@ class CreateMatchesTable extends Migration
     {
         Schema::create('t_matches', function (Blueprint $table) {
             $table->id();
-            $table->string('t1_id')->nullable(false);
-            $table->string('t2_id')->nullable(false);
+            $table->integer('t1_id')->nullable(false);
+            $table->integer('t2_id')->nullable(false);
             $table->integer('weak')->nullable(false);
+            $table->integer('league_id')->nullable(false);
             $table->string('result')->nullable(true);
             $table->timestamps();
         });

@@ -10,4 +10,18 @@ use Illuminate\Routing\Controller as BaseController;
 class Controller extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
+
+    protected $data = [];
+
+
+    public function __get($name)
+    {
+        return $this->data[$name];
+    }
+    public function __set($name, $value)
+    {
+        $this->data[$name] = $value;
+    }
+    
+
 }
